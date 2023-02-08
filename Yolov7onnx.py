@@ -36,7 +36,7 @@ class YOLOv7:
         
         # outputs after detect object
         self.outputs = [] # batch_id, x0, y0, x1, y1, cls_id, score
-
+        self.id_out = None
     
     def letterbox(self, im, new_shape=(320, 320), color=(114, 114, 114), auto=True, scaleup=True, stride=32):
         """"
@@ -96,9 +96,8 @@ class YOLOv7:
         # detect object
         inp = {self.inname[0]:im}
         self.outputs = self.session.run(self.outname, inp)[0]
-
-        
-
+        self.id_out = None
+        id_out = [1, 2, 0]
         #Visualizing bounding box prediction.
         ori_images = [img.copy()]
         for i,(batch_id,x0,y0,x1,y1,cls_id,score) in enumerate(self.outputs):
@@ -108,17 +107,26 @@ class YOLOv7:
             box /= ratio
             box = box.round().astype(np.int32).tolist()
             cls_id = int(cls_id)
+            self.id_out = id_out[cls_id] 
             score = round(float(score),3)
             name = self.class_names[cls_id]
             color = self.colors[name]
             name += ' '+str(score)
             cv2.rectangle(image,box[:2],box[2:],color,2)
-            cv2.putText(image,name,(box[0], box[1] - 2),cv2.FONT_HERSHEY_SIMPLEX,0.75,[225, 255, 255],thickness=2)
-        
+            cv2.putText(image,name,(box[0], box[1] - 2),cv2.FONT_HERSHEY_SIMPLEX,0.75,[225, 255, 255],thickness=2)    
         out_img = ori_images[0]
         out_img = cv2.cvtColor(out_img, cv2.COLOR_BGR2RGB)
         return out_img
-
+    def getIdOject(self,image):
+        """
+            get Object Id
+            input:
+                image-> array[W,H,3] : image to detect
+            ouput:
+                id-> int: id of object
+        """
+        out_img = self.detect_objects(image)
+        return self.id_out 
 if __name__ == "__main__":
     import os   
 
@@ -138,10 +146,10 @@ if __name__ == "__main__":
     for file in os.listdir(path):
         img = cv2.imread(path + file)
         # detect image
-        out_img = yolov7_detector.detect_objects(img)
-        out_img = cv2.resize(out_img, (720,720))
-
+        id = yolov7_detector.getIdOject(img)
+        # out_img = cv2.resize(out_img, (720,720))
+        print(id)
         # show images
-        cv2.imshow("out_image", out_img)
-        cv2.waitKey(300)
+        cv2.imshow("out_image", img)
+        cv2.waitKey(0)
  
